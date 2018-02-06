@@ -31,8 +31,8 @@ INES_SRAM   = 0 ; 1 = battery backed SRAM at $6000-7FFF
 
 ; zero page variables
 .segment "ZEROPAGE"
-color:         .res 1
-temp:          .res 1
+
+game_mode:     .res 1
 gamepad:       .res 1
 gamepad_last:  .res 1
 
@@ -54,11 +54,14 @@ color_white = $30
 palette:
 .byte color_blue, color_rust, color_gold, color_white
 
-CX = 160
-CY = 200
+press_start:
+.byte 'P','R','E','S','S', ' ', 'S','T','A','R','T'
 
-background:
+logo:
 .byte 'D','E','A','L','E','R',$BC,$BD
+
+size_of_grid:
+.byte "SIZE OF GRID?"
 
 ; fill remainder with $FF 
 .repeat 256
@@ -100,11 +103,11 @@ main:
 			bne :-
 		dey
 		bne :--
-	
+
   PPU_LATCH $2B56
 	ldx #0
 	:
-	  lda background, X
+	  lda logo, X
 		sta $2007
 		inx
 		cpx #8
@@ -114,9 +117,42 @@ main:
 	lda #%10000010
 	sta $2000
 
-	; enter infinite loop
-main_loop:
-	jmp main_loop
+TitleScreen:
+  PPU_LATCH $2ACA
+	ldx #0
+	:
+	  lda press_start, X
+		sta $2007
+		inx
+		cpx #11
+		bne :-
+
+WaitForStart:
+  lda game_mode
+	bne GameScreen
+	jmp WaitForStart ; infinite loop
+
+GameScreen:
+  PPU_LATCH $2ACA
+	ldx #0
+	:
+	  lda #0
+		sta $2007
+		inx
+		cpx #11
+		bne :-
+	
+	PPU_LATCH $2882
+	ldx #0
+	:
+	  lda size_of_grid, X
+		sta $2007
+		inx
+		cpx #13
+		bne :-
+
+WaitForEnd:
+	jmp WaitForEnd ; infinite loop
 
 PAD_A      = $01
 PAD_B      = $02
@@ -167,9 +203,15 @@ nmi:
 	lda gamepad_last
 	jne @gamepad_end ; wait for all buttons released
 
+  lda gamepad
+	cmp #PAD_START
+	bne :+
+		lda #1
+		sta game_mode
+	:
+
 	@gamepad_end:
 	lda gamepad
-	and #(PAD_U | PAD_D | PAD_L | PAD_R | PAD_A | PAD_SELECT)
 	sta gamepad_last
 
 	rti
