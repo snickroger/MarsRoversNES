@@ -35,6 +35,9 @@ INES_SRAM   = 0 ; 1 = battery backed SRAM at $6000-7FFF
 game_mode:     .res 1
 gamepad:       .res 1
 gamepad_last:  .res 1
+setup_state:   .res 1
+grid_size_x:   .res 1
+grid_size_y:   .res 1
 
 .segment "OAM"
 .assert ((* & $FF) = 0),error,"oam not aligned to page"
@@ -53,15 +56,20 @@ color_white = $30
 
 palette:
 .byte color_blue, color_rust, color_gold, color_white
+.byte color_blue, color_white, color_white, color_gold
 
 press_start:
-.byte 'P','R','E','S','S', ' ', 'S','T','A','R','T'
+.byte "PRESS START"
 
 logo:
-.byte 'D','E','A','L','E','R',$BC,$BD
+.byte "DEALER",$BC,$BD
 
-size_of_grid:
-.byte "SIZE OF GRID?"
+size_of_plateau:
+.byte "SIZE OF PLATEAU?   ",$BE
+
+sprite_data:
+.byte $1F, '5', $01, $9C
+.byte $1F, '5', $00, $B4
 
 ; fill remainder with $FF 
 .repeat 256
@@ -79,14 +87,14 @@ size_of_grid:
 main:
 	; setup default palettes
 	PPU_LATCH $3F00
-	ldy #16
+	ldy #8
 	:
 		ldx #0
 		:
 			lda palette, X
 			sta $2007
 			inx
-			cpx #4
+			cpx #8
 			bcc :-
 		dey
 		bne :--
@@ -129,10 +137,17 @@ TitleScreen:
 
 WaitForStart:
   lda game_mode
-	bne GameScreen
+	bne SetupScreen
 	jmp WaitForStart ; infinite loop
 
-GameScreen:
+SetupScreen:
+	ldx #0
+	:
+		lda sprite_data, X
+		sta oam, X
+		inx
+		cpx #8
+		bne :-
   PPU_LATCH $2ACA
 	ldx #0
 	:
@@ -145,10 +160,10 @@ GameScreen:
 	PPU_LATCH $2882
 	ldx #0
 	:
-	  lda size_of_grid, X
+	  lda size_of_plateau, X
 		sta $2007
 		inx
-		cpx #13
+		cpx #20
 		bne :-
 
 WaitForEnd:
