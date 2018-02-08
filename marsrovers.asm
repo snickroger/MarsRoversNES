@@ -67,8 +67,10 @@ logo:
 size_of_plateau:
 .byte "SIZE OF PLATEAU?   ",$BE
 
-sprite_data:
+sprite_size_x:
 .byte $1F, '5', $01, $9C
+
+sprite_size_y:
 .byte $1F, '5', $00, $B4
 
 ; fill remainder with $FF 
@@ -120,6 +122,11 @@ main:
 		inx
 		cpx #8
 		bne :-
+	
+	; setup variables
+	lda #5
+	sta grid_size_x
+	sta grid_size_y
 
 	; start NMI
 	lda #%10000010
@@ -141,13 +148,6 @@ WaitForStart:
 	jmp WaitForStart ; infinite loop
 
 SetupScreen:
-	ldx #0
-	:
-		lda sprite_data, X
-		sta oam, X
-		inx
-		cpx #8
-		bne :-
   PPU_LATCH $2ACA
 	ldx #0
 	:
@@ -165,6 +165,24 @@ SetupScreen:
 		inx
 		cpx #20
 		bne :-
+	
+	ldx #0
+	ldy #0
+:
+  lda sprite_size_x, X
+	sta oam, Y
+	inx
+	iny
+	cpx #4
+	bne :-
+	ldx #0
+:
+  lda sprite_size_y, X
+	sta oam, Y
+	inx
+	iny
+	cpx #4
+	bne :-
 
 WaitForEnd:
 	jmp WaitForEnd ; infinite loop
@@ -218,18 +236,110 @@ nmi:
 	lda gamepad_last
 	jne @gamepad_end ; wait for all buttons released
 
+	lda game_mode
+	bne :+
+	jsr HandleGamepadTitle
+	jmp @gamepad_end
+:
+  lda game_mode
+	cmp #1
+	bne :+
+	jsr HandleGamepadSetup
+	jmp @gamepad_end
+:
+  lda game_mode
+	cmp #2
+	bne :+
+  jsr HandleGamepadResults
+:
+@gamepad_end:
+	lda gamepad
+	sta gamepad_last
+
+	rti
+
+HandleGamepadTitle:
   lda gamepad
 	cmp #PAD_START
 	bne :+
 		lda #1
 		sta game_mode
 	:
+	rts
 
-	@gamepad_end:
+HandleGamepadSetup:
+  lda gamepad
+	cmp #PAD_R
+	bne :+
+	  lda #1
+		sta setup_state
+		ldx #2
+		lda #0
+		sta oam, X
+		ldx #6
+		lda #1
+		sta oam, X
+	:
+  lda gamepad
+	cmp #PAD_L
+	bne :+
+	  lda #0
+		sta setup_state
+		ldx #2
+		lda #1
+		sta oam, X
+		ldx #6
+		lda #0
+		sta oam, X
+	:
 	lda gamepad
-	sta gamepad_last
+	cmp #PAD_U
+	bne :+
+    lda setup_state
+		bne IncYSize
+		IncXSize:
+		  ldx #9
+			cpx grid_size_x
+			beq :+
+			inc grid_size_x
+			ldx #1
+			inc oam, X
+			jmp :+
+		IncYSize:
+		  ldx #9
+			cpx grid_size_y
+			beq :+
+			inc grid_size_y
+			ldx #5
+			inc oam, X
+	:
+	lda gamepad
+	cmp #PAD_D
+	bne :+
+    lda setup_state
+		bne DecYSize
+		DecXSize:
+		  ldx #1
+			cpx grid_size_x
+			beq :+
+			dec grid_size_x
+			ldx #1
+			dec oam, X
+			jmp :+
+		DecYSize:
+		  ldx #1
+			cpx grid_size_y
+			beq :+
+			dec grid_size_y
+			ldx #5
+			dec oam, X
+  :
+	rts
 
-	rti
+HandleGamepadResults:
+  lda gamepad
+	rts
+	
 
 irq:
 	rti
