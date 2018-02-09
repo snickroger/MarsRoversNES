@@ -38,6 +38,7 @@ gamepad_last:  .res 1
 setup_state:   .res 1
 grid_size_x:   .res 1
 grid_size_y:   .res 1
+rover_count:   .res 1
 
 .segment "OAM"
 .assert ((* & $FF) = 0),error,"oam not aligned to page"
@@ -67,11 +68,17 @@ logo:
 size_of_plateau:
 .byte "SIZE OF PLATEAU?   ",$BE
 
+how_many_rovers:
+.byte "HOW MANY ROVERS?"
+
 sprite_size_x:
 .byte $1F, '5', $01, $9C
 
 sprite_size_y:
 .byte $1F, '5', $00, $B4
+
+sprite_rover_count:
+.byte $3F, '2', $00, $9C
 
 ; fill remainder with $FF 
 .repeat 256
@@ -127,6 +134,8 @@ main:
 	lda #5
 	sta grid_size_x
 	sta grid_size_y
+	lda #2
+	sta rover_count
 
 	; start NMI
 	lda #%10000010
@@ -165,6 +174,15 @@ SetupScreen:
 		inx
 		cpx #20
 		bne :-
+
+	PPU_LATCH $2902
+	ldx #0
+	:
+	  lda how_many_rovers, X
+		sta $2007
+		inx
+		cpx #16
+		bne :-
 	
 	ldx #0
 	ldy #0
@@ -178,6 +196,14 @@ SetupScreen:
 	ldx #0
 :
   lda sprite_size_y, X
+	sta oam, Y
+	inx
+	iny
+	cpx #4
+	bne :-
+	ldx #0
+:
+  lda sprite_rover_count, X
 	sta oam, Y
 	inx
 	iny
@@ -306,11 +332,21 @@ HandleGamepadSetup:
 			inc oam, X
 			jmp :+
 		IncYSize:
+		  cmp #1
+			bne IncNumRovers
 		  ldx #9
 			cpx grid_size_y
 			beq :+
 			inc grid_size_y
 			ldx #5
+			inc oam, X
+			jmp :+
+		IncNumRovers:
+		  ldx #4
+		  cpx rover_count
+			beq :+
+			inc rover_count
+			ldx #9
 			inc oam, X
 	:
 	lda gamepad
@@ -327,19 +363,56 @@ HandleGamepadSetup:
 			dec oam, X
 			jmp :+
 		DecYSize:
+		  cmp #1
+			bne DecNumRovers
 		  ldx #1
 			cpx grid_size_y
 			beq :+
 			dec grid_size_y
 			ldx #5
 			dec oam, X
+			jmp :+
+		DecNumRovers:
+		  ldx #1
+		  cpx rover_count
+			beq :+
+			dec rover_count
+			ldx #9
+			dec oam, X
   :
+  lda gamepad
+	cmp #PAD_A
+	bne :+
+	  lda #2
+		sta setup_state
+		lda #0
+		ldx #2
+		sta oam, X
+		ldx #6
+		sta oam, X
+		lda #1
+		ldx #10
+		sta oam, X
+	:
+  lda gamepad
+	cmp #PAD_B
+	bne :+
+	  lda #0
+		sta setup_state
+		ldx #10
+		sta oam, X
+		ldx #6
+		sta oam, X
+		lda #1
+		ldx #2
+		sta oam, X
+	:
+
 	rts
 
 HandleGamepadResults:
   lda gamepad
 	rts
-	
 
 irq:
 	rti
