@@ -33,6 +33,8 @@ INES_SRAM   = 0 ; 1 = battery backed SRAM at $6000-7FFF
 .segment "ZEROPAGE"
 
 game_mode:     .res 1
+clr_screen:    .res 1
+updating_bg:   .res 1
 gamepad:       .res 1
 gamepad_last:  .res 1
 setup_state:   .res 1
@@ -49,6 +51,10 @@ oam:     .res 256
 
 ; CODE
 .segment "CODE"
+
+ppu_mask = %00011110
+nmi_on = %10000010
+nmi_off = %00000010
 
 color_blue = $02
 color_rust = $07
@@ -107,10 +113,50 @@ main:
 			bcc :-
 		dey
 		bne :--
-  
-	; setup nametable
-	PPU_LATCH $2000
-	ldy #16
+
+	; setup variables
+	lda #1
+	sta clr_screen
+	lda #5
+	sta grid_size_x
+	sta grid_size_y
+	lda #2
+	sta rover_count
+
+; start NMI
+	lda #nmi_on
+	sta $2000
+
+TitleScreen:
+	lda #1
+	sta clr_screen
+TitleWaitForClear:
+  cmp clr_screen
+	beq TitleWaitForClear
+	
+	lda #1
+	sta updating_bg
+
+  PPU_LATCH $2ACA
+	ldx #0
+	:
+	  lda press_start, X
+		sta $2007
+		inx
+		cpx #11
+		bne :-
+
+  lda #0
+	sta updating_bg
+
+WaitForStart:
+  lda game_mode
+	bne SetupScreen
+	jmp WaitForStart ; infinite loop
+
+ClearScreen:
+	PPU_LATCH $2800
+	ldy #4
 	:
 		ldx #0
 		:
@@ -129,43 +175,28 @@ main:
 		inx
 		cpx #8
 		bne :-
-	
-	; setup variables
-	lda #5
-	sta grid_size_x
-	sta grid_size_y
-	lda #2
-	sta rover_count
 
-	; start NMI
-	lda #%10000010
-	sta $2000
-
-TitleScreen:
-  PPU_LATCH $2ACA
 	ldx #0
-	:
-	  lda press_start, X
-		sta $2007
-		inx
-		cpx #11
-		bne :-
-
-WaitForStart:
-  lda game_mode
-	bne SetupScreen
-	jmp WaitForStart ; infinite loop
+	lda #0
+:
+	sta oam, X
+	inx
+	bne :-
+	
+	lda #0
+	sta clr_screen
+	rts
 
 SetupScreen:
-  PPU_LATCH $2ACA
-	ldx #0
-	:
-	  lda #0
-		sta $2007
-		inx
-		cpx #11
-		bne :-
-	
+	lda #1
+	sta clr_screen
+SetupWaitForClear:
+  cmp clr_screen
+	beq SetupWaitForClear
+
+	lda #1
+	sta updating_bg
+
 	PPU_LATCH $2882
 	ldx #0
 	:
@@ -183,7 +214,10 @@ SetupScreen:
 		inx
 		cpx #16
 		bne :-
-	
+
+	lda #0
+	sta updating_bg
+
 	ldx #0
 	ldy #0
 :
@@ -210,8 +244,21 @@ SetupScreen:
 	cpx #4
 	bne :-
 
-WaitForEnd:
-	jmp WaitForEnd ; infinite loop
+WaitForSetup:
+  lda game_mode
+	cmp #2
+	beq RoverScreen
+	jmp WaitForSetup ; infinite loop
+
+RoverScreen:
+	lda #1
+	sta clr_screen
+RoverWaitForClear:
+  cmp clr_screen
+	beq RoverWaitForClear
+
+WaitForRovers:
+	jmp WaitForRovers ; infinite loop
 
 PAD_A      = $01
 PAD_B      = $02
@@ -242,19 +289,51 @@ gamepad_poll:
 	rts
 
 nmi:
+  ; push A, X, and Y to stack
+	pha
+	txa
+  pha
+	tya
+	pha
+
+  ; check if screen is set to be cleared
+	lda #1
+	cmp clr_screen
+	bne FlagClear
+FlagSet:
+	cmp updating_bg ; ...unless background is still being updated
+	beq FlagClear
+
+  ; disable rendering
+	lda #0
+	sta $2001
+
+  ; disable NMI
+	sta $2000
+
+  ; clear the screen
+	jsr ClearScreen
+
+	; enable NMI
+	lda #nmi_on
+	sta $2000
+	jmp nmi_end
+
+FlagClear:
+	; set mask
+	lda #ppu_mask
+	sta $2001
+
+	; set scroll
+	lda #0
+	sta $2005
+	sta $2005
+
 	; update sprites
 	lda #0
 	sta $2003
 	lda #>oam
 	sta $4014
-
-	lda #0
-	sta $2005
-	sta $2005
-
-	; set mask
-	lda #%00011110
-	sta $2001
 
 	; respond to gamepad
 	jsr gamepad_poll
@@ -282,6 +361,14 @@ nmi:
 	lda gamepad
 	sta gamepad_last
 
+nmi_end:
+	; pull Y, X, and A from stack
+	pla
+	tay
+	pla
+	tax
+	pla
+	
 	rti
 
 HandleGamepadTitle:
@@ -384,6 +471,8 @@ HandleGamepadSetup:
 	cmp #PAD_A
 	bne :+
 	  lda #2
+		cmp setup_state
+		beq NextPage
 		sta setup_state
 		lda #0
 		ldx #2
@@ -393,6 +482,11 @@ HandleGamepadSetup:
 		lda #1
 		ldx #10
 		sta oam, X
+		jmp ButtonHandled
+	NextPage:
+	  lda #2
+		sta game_mode
+		jmp ButtonHandled
 	:
   lda gamepad
 	cmp #PAD_B
@@ -407,7 +501,7 @@ HandleGamepadSetup:
 		ldx #2
 		sta oam, X
 	:
-
+ButtonHandled:
 	rts
 
 HandleGamepadResults:
