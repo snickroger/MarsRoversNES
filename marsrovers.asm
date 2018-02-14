@@ -75,6 +75,9 @@ palette:
 .byte color_blue, color_rust, color_gold, color_white
 .byte color_blue, color_white, color_white, color_gold
 
+headings:
+.byte "NESW"
+
 press_start:
 .byte "PRESS START"
 
@@ -106,10 +109,10 @@ sprite_rover_count:
 .byte $3F, '2', $00, $9C
 
 sprite_start_x:
-.byte $37, '1', $01, $50
+.byte $37, '0', $01, $50
 
 sprite_start_y:
-.byte $37, '2', $00, $60
+.byte $37, '0', $00, $60
 
 sprite_start_h:
 .byte $37, 'N', $00, $70
