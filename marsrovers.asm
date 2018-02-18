@@ -47,6 +47,8 @@ curr_rover_ptr: .res 2
 curr_rover_x:   .res 1
 curr_rover_y:   .res 1
 curr_rover_h:   .res 1
+curr_rover_ins: .res 36
+next_rover:     .res 1
 
 .segment "OAM"
 .assert ((* & $FF) = 0),error,"oam not aligned to page"
@@ -91,13 +93,22 @@ how_many_rovers:
 .byte "HOW MANY ROVERS?"
 
 rover_number:
-.byte "ROVER #   :"
+.byte "ROVER #  :"
 
 rover_start:
 .byte "START: "
 
+rover_instructions:
+.byte "INSTRUCTIONS:"
+
 rover_help1:
 .byte $BA,": LEFT   ",$BB,": RIGHT   ",$B0,": MOVE"
+
+rover_help2:
+.byte $B1,": ERASE"
+
+rover_help3:
+.byte $B5,$B6,$B7,": NEXT"
 
 sprite_size_x:
 .byte $1F, '5', $01, $9C
@@ -107,6 +118,9 @@ sprite_size_y:
 
 sprite_rover_count:
 .byte $3F, '2', $00, $9C
+
+sprite_rover_current:
+.byte $1F, '1', $00, $50
 
 sprite_start_x:
 .byte $37, '0', $01, $50
