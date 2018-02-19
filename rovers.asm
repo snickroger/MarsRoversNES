@@ -2,32 +2,10 @@ RoverScreen:
   lda #0
 	sta next_rover
 
-	lda #1
-	sta clr_screen
-RoverWaitForClear:
-  cmp clr_screen
-	beq RoverWaitForClear
-
-	lda #1
-	sta updating_bg
-
-	PPU_LATCH $2882
-	ldx #0
-	:
-	  lda rover_number, X
-		sta $2007
-		inx
-		cpx #10
-		bne :-
-
-	PPU_LATCH $28E2
-	ldx #0
-	:
-	  lda rover_start, X
-		sta $2007
-		inx
-		cpx #6
-		bne :-
+  PPU_OFF
+	DRAW_CLR
+	DRAW_ROM 0, 10, $2882, rover_number
+	DRAW_ROM 14, 6, $28E2, rover_start
 
 	ldx #0
 	ldy #0
@@ -63,108 +41,64 @@ RoverWaitForClear:
 	cpx #4
 	bne :-
 
-	lda #0
-	sta updating_bg
+	PPU_ON
 
 WaitForRovers:
+	jsr DoFrame
   lda next_rover
 	jne RoverScreen
   jsr UpdateSpritesRovers
 	jmp WaitForRovers ; infinite loop
 
 UpdateSpritesRovers:
-	lda $2002
-	rol
-	bcs BeginUpdateSpritesRovers
-	rts
-BeginUpdateSpritesRovers:
-	clc
 	lda #0
 	cmp rovers_state
 	bne :+
 		lda #1
-	  ldx #6
-		sta oam, X
+		sta oam+6
 	  lda #0
-	  ldx #10
-		sta oam, X
-	  ldx #14
-		sta oam, X
+		sta oam+10
+		sta oam+14
 		jmp EndSetColorRovers
 	:
 	lda #1
 	cmp rovers_state
 	bne :+
 		lda #1
-	  ldx #10
-		sta oam, X
+		sta oam+10
 	  lda #0
-	  ldx #6
-		sta oam, X
-	  ldx #14
-		sta oam, X
+		sta oam+6
+		sta oam+14
 		jmp EndSetColorRovers
 	:
 	lda #2
 	cmp rovers_state
 	bne :+
 		lda #1
-	  ldx #14
-		sta oam, X
+		sta oam+14
 	  lda #0
-	  ldx #6
-		sta oam, X
-	  ldx #10
-		sta oam, X
+		sta oam+6
+		sta oam+10
 		jmp EndSetColorRovers
 	: 
 	lda #3
 	cmp rovers_state
 	jne EndSetColorRovers
 		lda #0
-	  ldx #6
-		sta oam, X
-	  ldx #10
-		sta oam, X
-	  ldx #14
-		sta oam, X
+		sta oam+6
+		sta oam+10
+		sta oam+14
+		lda rovers_ad_help
+		jne @help_visible
 
-	  PPU_LATCH $2AC2
-	  ldx #0
-	  :
-	    lda rover_help1, X
-		  sta $2007
-		  inx
-		  cpx #28
-		  bne :-
+		DRAW_ROM 0, 28, $2AC2, rover_help1
+		DRAW_ROM 32, 8, $2AEC, rover_help2
+		DRAW_ROM 44, 9, $2AF5, rover_help3
+		DRAW_ROM 61, 13, $2942, rover_instructions
+		lda #1
+		sta rovers_ad_help
 
-	  PPU_LATCH $2AEC
-	  ldx #0
-	  :
-	    lda rover_help2, X
-		  sta $2007
-		  inx
-		  cpx #8
-		  bne :-
-
-	  PPU_LATCH $2AF5
-	  ldx #0
-	  :
-	    lda rover_help3, X
-		  sta $2007
-		  inx
-		  cpx #9
-		  bne :-
-
-		PPU_LATCH $2942
-	  ldx #0
-	  :
-	    lda rover_instructions, X
-		  sta $2007
-		  inx
-		  cpx #13
-		  bne :-
-
+@help_visible:
 	  PPU_LATCH $298A
 	  ldx #0
 	  :
@@ -173,29 +107,20 @@ BeginUpdateSpritesRovers:
 		  inx
 			cmp #0
 		  bne :-
-		
-		; reset scroll
-		lda #0
-		sta $2005
-		sta $2005
 EndSetColorRovers:
   lda curr_rover
 	adc #$30
-	ldx #1
-	sta oam, X
+	sta oam+1
 	lda curr_rover_x
   clc
   adc #$30
-  ldx #5
-  sta oam, X
+  sta oam+5
   lda curr_rover_y
   adc #$30
-  ldx #9
-  sta oam, X
+  sta oam+9
   ldy curr_rover_h
-  ldx #13
   lda headings, Y
-  sta oam, X
+  sta oam+13
 
   rts
 
@@ -291,15 +216,12 @@ DecCurrRoverH:
 	bne :+
     lda #3
     sta rovers_state
-    ldx #0
     lda curr_rover_x
-    sta rover1, X
-    inx
+    sta rover1
     lda curr_rover_y
-    sta rover1, X
-    inx
+    sta rover1+1
     lda curr_rover_h
-    sta rover1, X
+    sta rover1+2
 		lda #<curr_rover_ins
 		sta curr_rover_ptr
   :

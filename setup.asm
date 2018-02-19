@@ -1,61 +1,34 @@
 SetupScreen:
-	lda #1
-	sta clr_screen
-SetupWaitForClear:
-  cmp clr_screen
-	beq SetupWaitForClear
-
-	lda #1
-	sta updating_bg
-
-	PPU_LATCH $2882
-	ldx #0
-	:
-	  lda size_of_plateau, X
-		sta $2007
-		inx
-		cpx #20
-		bne :-
-
-	PPU_LATCH $2902
-	ldx #0
-	:
-	  lda how_many_rovers, X
-		sta $2007
-		inx
-		cpx #16
-		bne :-
-
-	lda #0
-	sta updating_bg
-
-	ldx #0
-	ldy #0
-:
-  lda sprite_size_x, X
+  PPU_OFF
+  DRAW_CLR
+	DRAW_ROM 0, 8, $2B56, logo
+  DRAW_ROM 12, 20, $2882, size_of_plateau
+  DRAW_ROM 36, 16, $2902, how_many_rovers
+: lda sprite_size_x, X
 	sta oam, Y
 	inx
 	iny
 	cpx #4
 	bne :-
 	ldx #0
-:
-  lda sprite_size_y, X
+: lda sprite_size_y, X
 	sta oam, Y
 	inx
 	iny
 	cpx #4
 	bne :-
 	ldx #0
-:
-  lda sprite_rover_count, X
+: lda sprite_rover_count, X
 	sta oam, Y
 	inx
 	iny
 	cpx #4
 	bne :-
-
+	
+	PPU_ON
+	
 WaitForSetup:
+  jsr DoFrame
   lda game_mode
 	cmp #2
 	jeq RoverScreen
@@ -67,120 +40,100 @@ SetupHandleGamepad:
 	bne :+
 	  lda #1
 		sta setup_state
-		ldx #2
 		lda #0
-		sta oam, X
-		ldx #6
+		sta oam+2
 		lda #1
-		sta oam, X
+		sta oam+6
 	:
   lda gamepad
 	cmp #PAD_L
 	bne :+
 	  lda #0
 		sta setup_state
-		ldx #2
 		lda #1
-		sta oam, X
-		ldx #6
+		sta oam+2
 		lda #0
-		sta oam, X
+		sta oam+6
 	:
 	lda gamepad
 	cmp #PAD_U
 	bne :+
     lda setup_state
-		bne IncYSize
-		IncXSize:
+		bne @incYSize
+		@incXSize:
 		  ldx #9
 			cpx grid_size_x
 			beq :+
 			inc grid_size_x
-			ldx #1
-			inc oam, X
+			inc oam+1
 			jmp :+
-		IncYSize:
+		@incYSize:
 		  cmp #1
-			bne IncNumRovers
+			bne @incNumRovers
 		  ldx #9
 			cpx grid_size_y
 			beq :+
 			inc grid_size_y
-			ldx #5
-			inc oam, X
+			inc oam+5
 			jmp :+
-		IncNumRovers:
+		@incNumRovers:
 		  ldx #4
 		  cpx rover_count
 			beq :+
 			inc rover_count
-			ldx #9
-			inc oam, X
-	:
-	lda gamepad
+			inc oam+9
+	:	lda gamepad
 	cmp #PAD_D
 	bne :+
     lda setup_state
-		bne DecYSize
-		DecXSize:
+		bne @decYSize
+		@decXSize:
 		  ldx #1
 			cpx grid_size_x
 			beq :+
 			dec grid_size_x
-			ldx #1
-			dec oam, X
+			dec oam+1
 			jmp :+
-		DecYSize:
+		@decYSize:
 		  cmp #1
-			bne DecNumRovers
+			bne @decNumRovers
 		  ldx #1
 			cpx grid_size_y
 			beq :+
 			dec grid_size_y
-			ldx #5
-			dec oam, X
+			dec oam+5
 			jmp :+
-		DecNumRovers:
+		@decNumRovers:
 		  ldx #1
 		  cpx rover_count
 			beq :+
 			dec rover_count
-			ldx #9
-			dec oam, X
-  :
-  lda gamepad
+			dec oam+9
+  : lda gamepad
 	cmp #PAD_A
 	bne :+
 	  lda #2
 		cmp setup_state
-		beq NextPage
+		beq @nextPage
 		sta setup_state
 		lda #0
-		ldx #2
-		sta oam, X
-		ldx #6
-		sta oam, X
+		sta oam+2
+		sta oam+6
 		lda #1
-		ldx #10
-		sta oam, X
+		sta oam+10
 		jmp SetupButtonHandled
-	NextPage:
+	@nextPage:
 	  lda #2
 		sta game_mode
 		jmp SetupButtonHandled
-	:
-  lda gamepad
+	: lda gamepad
 	cmp #PAD_B
-	bne :+
+	bne SetupButtonHandled
 	  lda #0
 		sta setup_state
-		ldx #10
-		sta oam, X
-		ldx #6
-		sta oam, X
+		sta oam+10
+		sta oam+6
 		lda #1
-		ldx #2
-		sta oam, X
-	:
+		sta oam+2
 SetupButtonHandled:
 	rts

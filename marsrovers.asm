@@ -32,16 +32,21 @@ INES_SRAM   = 0 ; 1 = battery backed SRAM at $6000-7FFF
 ; zero page variables
 .segment "ZEROPAGE"
 
-game_mode:      .res 1
-clr_screen:     .res 1
-updating_bg:    .res 1
+buf2000:        .res 1
+buf2001:        .res 1
+update_sprites: .res 1
+update_bg:      .res 1
+update_ppu:     .res 1
+sleeping:       .res 1
 gamepad:        .res 1
 gamepad_last:   .res 1
+game_mode:      .res 1
 setup_state:    .res 1
 grid_size_x:    .res 1
 grid_size_y:    .res 1
 rover_count:    .res 1
 rovers_state:   .res 1
+rovers_ad_help: .res 1
 curr_rover:     .res 1
 curr_rover_ptr: .res 2
 curr_rover_x:   .res 1
@@ -53,6 +58,9 @@ next_rover:     .res 1
 .segment "OAM"
 .assert ((* & $FF) = 0),error,"oam not aligned to page"
 oam:            .res 256
+
+.segment "DRAW"
+draw:           .res 256
 
 ; RAM variables
 .segment "BSS"
@@ -136,6 +144,54 @@ sprite_start_h:
 		.byte $FF
 .endrepeat
 
+.macro DRAW_ROM start, len, ppu_addr, rom_addr
+	lda #len
+	sta draw+start
+	lda #>ppu_addr
+	sta draw+start+1
+	lda #<ppu_addr
+	sta draw+start+2
+	.repeat len, i
+    lda rom_addr+i
+		sta draw+start+3+i
+	.endrepeat
+	lda #0
+	sta draw+start+3+len
+.endmacro
+
+.macro PPU_OFF
+  lda #0
+	sta buf2001
+  lda #1
+	sta update_ppu
+
+	jsr WaitFrame
+.endmacro
+
+.macro PPU_ON
+  lda #ppu_mask
+	sta buf2001
+  lda #1
+	sta update_ppu
+
+	jsr WaitFrame
+.endmacro
+
+.macro DRAW_CLR
+	lda #>$2800
+	sta $2006
+	lda #<$2800
+	sta $2006
+
+	ldy #4
+	: ldx #0
+		: sta $2007
+			inx
+			bne :-
+		dey
+		bne :--
+.endmacro
+
 .macro PPU_LATCH addr
 	lda $2002
 	lda #>addr
@@ -160,15 +216,17 @@ main:
 		bne :--
 
 	; setup variables
-	lda #1
-	sta clr_screen
 	lda #5
 	sta grid_size_x
 	sta grid_size_y
 	lda #2
 	sta rover_count
+	lda #nmi_on
+	sta buf2000
+	lda #ppu_mask
+	sta buf2001
 
-; start NMI
+  ; start NMI
 	lda #nmi_on
 	sta $2000
 
@@ -202,9 +260,7 @@ ClearScreen:
 	sta oam, X
 	inx
 	bne :-
-	
-	lda #0
-	sta clr_screen
+
 	rts
 
 ; game screens / loops
@@ -221,72 +277,7 @@ PAD_D      = $20
 PAD_L      = $40
 PAD_R      = $80
 
-gamepad_poll:
-	lda #1
-	sta $4016
-	lda #0
-	sta $4016
-	ldx #8
-	:
-		pha
-		lda $4016
-		and #%00000011
-		cmp #%00000001
-		pla
-		ror
-		dex
-		bne :-
-	sta gamepad
-	lda gamepad
-	rts
-
-nmi:
-  ; push A, X, and Y to stack
-	pha
-	txa
-  pha
-	tya
-	pha
-
-  ; check if screen is set to be cleared
-	lda #1
-	cmp clr_screen
-	bne FlagClear
-	cmp updating_bg ; ...unless background is still being updated
-	beq FlagClear
-
-  ; disable rendering
-	lda #0
-	sta $2001
-
-  ; disable NMI
-	sta $2000
-
-  ; clear the screen
-	jsr ClearScreen
-
-	; enable NMI
-	lda #nmi_on
-	sta $2000
-	jmp nmi_end
-
-FlagClear:
-	; set mask
-	lda #ppu_mask
-	sta $2001
-
-	; set scroll
-	lda #0
-	sta $2005
-	sta $2005
-
-	; update sprites
-	lda #0
-	sta $2003
-	lda #>oam
-	sta $4014
-
-	; respond to gamepad
+HandleGamepad:
 	jsr gamepad_poll
 	jsr gamepad_poll
 	lda gamepad_last
@@ -311,8 +302,104 @@ FlagClear:
 @gamepad_end:
 	lda gamepad
 	sta gamepad_last
+  rts
 
-nmi_end:
+gamepad_poll:
+	lda #1
+	sta $4016
+	lda #0
+	sta $4016
+	ldx #8
+	:
+		pha
+		lda $4016
+		and #%00000011
+		cmp #%00000001
+		pla
+		ror
+		dex
+		bne :-
+	sta gamepad
+	lda gamepad
+	rts
+
+WaitFrame:
+	inc sleeping
+	@loop:
+		lda sleeping
+		bne @loop
+	rts
+
+DoDrawing:
+  ldx #0
+	@draw_more:
+		ldy draw, X
+		beq @end_draw
+		inx
+		lda $2002
+		lda draw, X
+		sta $2006
+		inx
+		lda draw, X
+		sta $2006
+		inx
+			:	lda draw, X
+			sta $2007
+			dey
+			inx
+			cpy #0
+			bne :-
+		inx
+		jmp @draw_more
+  @end_draw:
+	lda #0
+	sta draw
+  rts
+
+DoFrame:
+	lda #1
+	sta update_bg
+	sta update_sprites
+	sta update_ppu
+	jsr WaitFrame
+	jsr HandleGamepad
+	rts
+
+nmi:
+  ; push A, X, and Y to stack
+	pha
+	txa
+  pha
+	tya
+	pha
+
+  lda update_sprites
+	beq :+
+	  lda #0
+		sta $2003
+		lda #>oam
+		sta $4014
+	:
+	lda update_bg
+	beq :+
+	  bit $2002
+		jsr DoDrawing
+		dec update_bg
+	:
+	lda update_ppu
+	beq :+
+	  lda buf2001
+		sta $2001
+		lda buf2000
+		sta $2000
+	:
+  lda #0
+	sta sleeping
+
+	lda #0
+	sta $2005
+	sta $2005
+
 	; pull Y, X, and A from stack
 	pla
 	tay
