@@ -1,11 +1,13 @@
 RoverScreen:
   lda #0
 	sta next_rover
+	sta rovers_ad_help
 
   PPU_OFF
 	DRAW_CLR
 	DRAW_ROM 0, 10, $2882, rover_number
-	DRAW_ROM 14, 6, $28E2, rover_start
+	DRAW_ROM 13, 6, $28E2, rover_start
+	DRAW_ROM 22, 8, $2B56, logo
 
 	ldx #0
 	ldy #0
@@ -92,21 +94,24 @@ UpdateSpritesRovers:
 		jne @help_visible
 
 		DRAW_ROM 0, 28, $2AC2, rover_help1
-		DRAW_ROM 32, 8, $2AEC, rover_help2
-		DRAW_ROM 44, 9, $2AF5, rover_help3
-		DRAW_ROM 61, 13, $2942, rover_instructions
+		DRAW_ROM 31, 18, $2AEC, rover_help2
+		DRAW_ROM 52, 13, $2942, rover_instructions
+
 		lda #1
 		sta rovers_ad_help
 
 @help_visible:
-	  PPU_LATCH $298A
-	  ldx #0
-	  :
-	    lda curr_rover_ins, X
-		  sta $2007
-		  inx
+    PPU_LATCH $298A
+		ldx #0
+		: lda curr_rover_ins, X
+			sta $2007
+			inx
 			cmp #0
-		  bne :-
+			bne :-
+		lda #0
+		sta $2005
+		sta $2005
+
 EndSetColorRovers:
   lda curr_rover
 	adc #$30
@@ -254,6 +259,9 @@ AddToInstructions:
 	lda gamepad
 	cmp #PAD_B
 	bne :+
+	  lda curr_rover_ptr
+		cmp #<curr_rover_ins
+		beq :+
 	  lda #0
 		dec curr_rover_ptr
 		sta (<curr_rover_ptr, X)

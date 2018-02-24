@@ -1,6 +1,6 @@
 TitleScreen:
   DRAW_ROM 0, 11, $2ACA, press_start
-	DRAW_ROM 15, 8, $2B56, logo
+	DRAW_ROM 14, 8, $2B56, logo
 
 WaitForStart:
   jsr DoFrame

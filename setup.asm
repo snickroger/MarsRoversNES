@@ -2,8 +2,8 @@ SetupScreen:
   PPU_OFF
   DRAW_CLR
 	DRAW_ROM 0, 8, $2B56, logo
-  DRAW_ROM 12, 20, $2882, size_of_plateau
-  DRAW_ROM 36, 16, $2902, how_many_rovers
+  DRAW_ROM 11, 20, $2882, size_of_plateau
+  DRAW_ROM 34, 16, $2902, how_many_rovers
 : lda sprite_size_x, X
 	sta oam, Y
 	inx
