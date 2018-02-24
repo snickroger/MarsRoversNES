@@ -43,6 +43,7 @@ main:
 .include "title.asm"
 .include "setup.asm"
 .include "rovers.asm"
+.include "results.asm"
 
 PAD_A      = $01
 PAD_B      = $02

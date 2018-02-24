@@ -45,6 +45,7 @@ curr_rover_ptr: .res 2
 curr_rover_x:   .res 1
 curr_rover_y:   .res 1
 curr_rover_h:   .res 1
+curr_rover_res: .res 1
 curr_rover_ins: .res 36
 next_rover:     .res 1
 

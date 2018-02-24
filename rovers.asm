@@ -3,6 +3,10 @@ RoverScreen:
 	sta next_rover
 	sta rovers_ad_help
 
+	lda curr_rover
+	cmp rover_count
+	jeq ResultsScreen
+
   PPU_OFF
 	DRAW_CLR
 	DRAW_ROM 0, 10, $2882, rover_number
@@ -276,15 +280,53 @@ AddToInstructions:
 	jmp RoversButtonHandled
 
 ClearInstructionsInput:
-  ldx #0
+  lda curr_rover
+	cmp #1
+	bne :+
+	  lda #<rover1
+		sta curr_rover_ptr
+		lda #>rover1
+		sta curr_rover_ptr+1
+	: 
+	lda curr_rover
+	cmp #2
+	bne :+
+	  lda #<rover2
+		sta curr_rover_ptr
+		lda #>rover2
+		sta curr_rover_ptr+1
+	: 
+	lda curr_rover
+	cmp #3
+	bne :+
+	  lda #<rover3
+		sta curr_rover_ptr
+		lda #>rover3
+		sta curr_rover_ptr+1
+	: 
+	lda curr_rover
+	cmp #4
+	bne :+
+	  lda #<rover4
+		sta curr_rover_ptr
+		lda #>rover4
+		sta curr_rover_ptr+1
+
+  ; move the next 40 bytes
+	ldy #0
+	: cpy #40
+	beq @copy_done
+	lda curr_rover_x, Y
+	sta (curr_rover_ptr), Y
 	lda #0
-	sta curr_rover_x
-	sta curr_rover_y
-	sta curr_rover_h
+  sta curr_rover_x, Y
+	iny
+	jmp :-
+	
+@copy_done:
+  lda #0
 	sta rovers_state
-	:
-	  sta curr_rover_ins, X
-		inx
-	  cpx #36
-		bne :-
+	sta curr_rover_ptr+1
+	lda #<curr_rover_ins
+	sta curr_rover_ptr
 	rts
