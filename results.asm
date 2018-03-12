@@ -164,18 +164,29 @@ MoveRover:
   lda curr_rover_h
   cmp #0 ; North (Y+1)
   bne :+
+    lda curr_rover_y
+    cmp grid_size_y
+    beq @skip_move
     inc curr_rover_y
     rts
   : cmp #1 ; East (X+1)
   bne :+
+    lda curr_rover_x
+    cmp grid_size_x
+    beq @skip_move
     inc curr_rover_x
     rts
   : cmp #2 ; South (Y-1)
   bne :+
+    lda curr_rover_y
+    beq @skip_move
     dec curr_rover_y
     rts
   : ; West (X-1)
+    lda curr_rover_x
+    beq @skip_move
     dec curr_rover_x
+@skip_move:
     rts
 
 GetHeadingChar:

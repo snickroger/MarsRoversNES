@@ -164,8 +164,6 @@ RoversHandleGamepad:
     cmp #0
     bne IncCurrRoverY
       lda curr_rover_x
-      clc
-      adc #1
       cmp grid_size_x
       jeq RoversButtonHandled
       inc curr_rover_x
@@ -175,8 +173,6 @@ IncCurrRoverY:
     cmp #1
     bne IncCurrRoverH
       lda curr_rover_y
-      clc
-      adc #1
       cmp grid_size_y
       jeq RoversButtonHandled
       inc curr_rover_y
