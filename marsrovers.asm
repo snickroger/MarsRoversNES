@@ -76,6 +76,11 @@ HandleGamepad:
 	bne :+
   jsr RoversHandleGamepad
 :
+  lda game_mode
+	cmp #3
+	bne :+
+  jsr ResultsHandleGamepad
+:
 @gamepad_end:
 	lda gamepad
 	sta gamepad_last
@@ -140,6 +145,40 @@ DoFrame:
 	jsr WaitFrame
 	jsr HandleGamepad
 	rts
+
+SetCurrRoverPtr:
+	lda curr_rover
+	cmp #1
+	bne :+
+	  lda #<rover1
+		sta curr_rover_ptr
+		lda #>rover1
+		sta curr_rover_ptr+1
+	: 
+	lda curr_rover
+	cmp #2
+	bne :+
+	  lda #<rover2
+		sta curr_rover_ptr
+		lda #>rover2
+		sta curr_rover_ptr+1
+	: 
+	lda curr_rover
+	cmp #3
+	bne :+
+	  lda #<rover3
+		sta curr_rover_ptr
+		lda #>rover3
+		sta curr_rover_ptr+1
+	: 
+	lda curr_rover
+	cmp #4
+	bne :+
+	  lda #<rover4
+		sta curr_rover_ptr
+		lda #>rover4
+		sta curr_rover_ptr+1
+	: rts
 
 nmi:
   ; push A, X, and Y to stack

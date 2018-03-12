@@ -1,4 +1,5 @@
 TitleScreen:
+  DRAW_CLR
   DRAW_ROM 0, 11, $2ACA, press_start
 	DRAW_ROM 14, 8, $2B56, logo
 

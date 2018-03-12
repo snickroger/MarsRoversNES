@@ -5,9 +5,12 @@ RoverScreen:
 
 	lda curr_rover
 	cmp rover_count
-	jeq ResultsScreen
+	bne :+
+	  lda #3
+		sta game_mode
+		jmp ResultsScreen
 
-  PPU_OFF
+: PPU_OFF
 	DRAW_CLR
 	DRAW_ROM 0, 10, $2882, rover_number
 	DRAW_ROM 13, 6, $28E2, rover_start
@@ -225,12 +228,6 @@ DecCurrRoverH:
 	bne :+
     lda #3
     sta rovers_state
-    lda curr_rover_x
-    sta rover1
-    lda curr_rover_y
-    sta rover1+1
-    lda curr_rover_h
-    sta rover1+2
 		lda #<curr_rover_ins
 		sta curr_rover_ptr
   :
@@ -281,36 +278,7 @@ AddToInstructions:
 
 ClearInstructionsInput:
   lda curr_rover
-	cmp #1
-	bne :+
-	  lda #<rover1
-		sta curr_rover_ptr
-		lda #>rover1
-		sta curr_rover_ptr+1
-	: 
-	lda curr_rover
-	cmp #2
-	bne :+
-	  lda #<rover2
-		sta curr_rover_ptr
-		lda #>rover2
-		sta curr_rover_ptr+1
-	: 
-	lda curr_rover
-	cmp #3
-	bne :+
-	  lda #<rover3
-		sta curr_rover_ptr
-		lda #>rover3
-		sta curr_rover_ptr+1
-	: 
-	lda curr_rover
-	cmp #4
-	bne :+
-	  lda #<rover4
-		sta curr_rover_ptr
-		lda #>rover4
-		sta curr_rover_ptr+1
+	jsr SetCurrRoverPtr
 
   ; move the next 40 bytes
 	ldy #0
