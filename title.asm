@@ -1,12 +1,13 @@
 TitleScreen:
-  DRAW_CLR
+  DRAW_CLR ; clears the screen
+	; draws tiles stored in ROM to the screen
   DRAW_ROM 0, 11, $2ACA, press_start
 	DRAW_ROM 14, 8, $2B56, logo
 	DRAW_ROM 25, 8, $2887, title_row1
 	DRAW_ROM 36, 8, $28A7, title_row2
 	DRAW_ROM 47, 21, $28C7, title_row3
 	DRAW_ROM 71, 22, $28E7, title_row4
-	jsr DoFrame
+	jsr DoFrame ; clears the screen buffer
   DRAW_ROM 0, 27, $2902, title_row5
 	DRAW_ROM 30, 28, $2921, title_row6
 	DRAW_ROM 61, 30, $2941, title_row7
@@ -19,7 +20,7 @@ WaitForStart:
   jsr DoFrame
   lda game_mode
 	bne SetupScreen
-	jmp WaitForStart ; infinite loop
+	jmp WaitForStart ; infinite loop until the start button is pressed
 
 TitleHandleGamepad:
   lda gamepad

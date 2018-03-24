@@ -3,6 +3,8 @@ ResultsScreen:
 
   DRAW_CLR
   DRAW_ROM 0, 8, $2B56, logo
+  
+  ; clear out all sprite data
   ldy #4
   ldx #0
   lda #0
@@ -18,7 +20,8 @@ ResultsScreen:
     bne :-
 
   jsr CalculateResults
-
+  ; rovers final positions have been calculated,
+  ; display them on the screen
   ldx #0
   ; print rover 1
   PPU_LATCH $2882
@@ -92,6 +95,9 @@ ResultsHandleGamepad:
   : rts
 
 CalculateResults:
+  ; runs the instructions for each rover and overwrites
+  ; its beginning position with the characters of its
+  ; final position
   lda #0
   sta curr_rover
 NextRover:
@@ -128,7 +134,7 @@ NextRover:
   ldy #0
   lda curr_rover_x
   clc
-  adc #$30
+  adc #$30 
   sta (curr_rover_ptr), Y
   iny
   lda curr_rover_y
@@ -161,6 +167,8 @@ TurnRight:
   rts
 
 MoveRover:
+  ; moves the rover in the direction it is facing
+  ; skips the move if it hits a plateau boundary
   lda curr_rover_h
   cmp #0 ; North (Y+1)
   bne :+
@@ -190,6 +198,7 @@ MoveRover:
     rts
 
 GetHeadingChar:
+  ; stores the character of the rover's heading in A
   lda curr_rover_h
   cmp #0 ; North (Y+1)
   bne :+

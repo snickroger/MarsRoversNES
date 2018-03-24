@@ -160,12 +160,12 @@ sprite_start_y:
 sprite_start_h:
 .byte $37, 'N', $00, $70
 
-; fill remainder with $FF 
-.repeat 256
-		.byte $FF
-.endrepeat
-
 .macro DRAW_ROM start, len, ppu_addr, rom_addr
+  ; this macro draws background tiles to the screen
+	; start: index of the draw buffer to start at
+	; len: number of bytes to draw 
+	; ppu_addr: screen address to start drawing at
+	; rom_addr: rom memory address of the characters to load into draw buffer
 	lda #len
 	sta draw+start
 	lda #>ppu_addr
@@ -180,7 +180,7 @@ sprite_start_h:
 	sta draw+start+3+len
 .endmacro
 
-.macro PPU_OFF
+.macro PPU_OFF ; disables the PPU (clears the screen until re-enabled)
   lda #0
 	sta buf2001
   lda #1
@@ -189,7 +189,7 @@ sprite_start_h:
 	jsr WaitFrame
 .endmacro
 
-.macro PPU_ON
+.macro PPU_ON ; enables the PPU
   lda #ppu_mask
 	sta buf2001
   lda #1
@@ -199,6 +199,8 @@ sprite_start_h:
 .endmacro
 
 .macro DRAW_CLR
+  ; this macro clears the screen by drawing tile 0x00
+	; over and over again
 	lda #>$2800
 	sta $2006
 	lda #<$2800

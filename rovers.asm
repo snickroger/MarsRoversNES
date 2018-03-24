@@ -64,9 +64,9 @@ UpdateSpritesRovers:
 	cmp rovers_state
 	bne :+
 		lda #1
-		sta oam+6
+		sta oam+6 ; change the palette of the selected menu item
 	  lda #0
-		sta oam+10
+		sta oam+10 ; reset the palette of the unselected menu items
 		sta oam+14
 		jmp EndSetColorRovers
 	:
@@ -100,6 +100,7 @@ UpdateSpritesRovers:
 		lda rovers_ad_help
 		jne @help_visible
 
+		; print help text to screen
 		DRAW_ROM 0, 28, $2AC2, rover_help1
 		DRAW_ROM 31, 18, $2AEC, rover_help2
 		DRAW_ROM 52, 13, $2942, rover_instructions
@@ -139,7 +140,7 @@ EndSetColorRovers:
 RoversHandleGamepad:
   lda rovers_state
 	cmp #3
-	bne :+
+	bne :+ ; currently inputting rover instructions?
 	jmp AddToInstructions
   :
   lda gamepad
