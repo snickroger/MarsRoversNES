@@ -30,8 +30,6 @@ main:
 	sta rover_count
 	lda #nmi_on
 	sta buf2000
-	lda #ppu_mask
-	sta buf2001
 
   ; start NMI
 	lda #nmi_on
