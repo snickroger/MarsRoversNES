@@ -202,17 +202,17 @@ GetHeadingChar:
   lda curr_rover_h
   cmp #0 ; North (Y+1)
   bne :+
-    lda #$4E
+    lda #'N'
     rts
   : cmp #1 ; East (X+1)
   bne :+
-    lda #$45
+    lda #'E'
     rts
   : cmp #2 ; South (Y-1)
   bne :+
-    lda #$53
+    lda #'S'
     rts
   : ; West (X-1)
-    lda #$57
+    lda #'W'
     rts
     
