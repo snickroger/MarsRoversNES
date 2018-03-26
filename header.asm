@@ -162,63 +162,63 @@ sprite_start_h:
 
 .macro DRAW_ROM start, len, ppu_addr, rom_addr
   ; this macro draws background tiles to the screen
-	; start: index of the draw buffer to start at
-	; len: number of bytes to draw 
-	; ppu_addr: screen address to start drawing at
-	; rom_addr: rom memory address of the characters to load into draw buffer
-	lda #len
-	sta draw+start
-	lda #>ppu_addr
-	sta draw+start+1
-	lda #<ppu_addr
-	sta draw+start+2
-	.repeat len, i
+  ; start: index of the draw buffer to start at
+  ; len: number of bytes to draw 
+  ; ppu_addr: screen address to start drawing at
+  ; rom_addr: rom memory address of the characters to load into draw buffer
+  lda #len
+  sta draw+start
+  lda #>ppu_addr
+  sta draw+start+1
+  lda #<ppu_addr
+  sta draw+start+2
+  .repeat len, i
     lda rom_addr+i
-		sta draw+start+3+i
-	.endrepeat
-	lda #0
-	sta draw+start+3+len
+    sta draw+start+3+i
+  .endrepeat
+  lda #0
+  sta draw+start+3+len
 .endmacro
 
 .macro PPU_OFF ; disables the PPU (clears the screen until re-enabled)
   lda #0
-	sta buf2001
+  sta buf2001
   lda #1
-	sta update_ppu
+  sta update_ppu
 
-	jsr WaitFrame
+  jsr WaitFrame
 .endmacro
 
 .macro PPU_ON ; enables the PPU
   lda #ppu_mask
-	sta buf2001
+  sta buf2001
   lda #1
-	sta update_ppu
+  sta update_ppu
 
-	jsr WaitFrame
+  jsr WaitFrame
 .endmacro
 
 .macro DRAW_CLR
   ; this macro clears the screen by drawing tile 0x00
-	; over and over again
-	lda #>$2800
-	sta $2006
-	lda #<$2800
-	sta $2006
+  ; over and over again
+  lda #>$2800
+  sta $2006
+  lda #<$2800
+  sta $2006
 
-	ldy #4
-	: ldx #0
-		: sta $2007
-			inx
-			bne :-
-		dey
-		bne :--
+  ldy #4
+  : ldx #0
+    : sta $2007
+      inx
+      bne :-
+    dey
+    bne :--
 .endmacro
 
 .macro PPU_LATCH addr
-	lda $2002
-	lda #>addr
-	sta $2006
-	lda #<addr
-	sta $2006
+  lda $2002
+  lda #>addr
+  sta $2006
+  lda #<addr
+  sta $2006
 .endmacro
